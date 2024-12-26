@@ -23,14 +23,11 @@ const Main = () => {
     let [showDetail, setShowDetail] = useState<Task | null>(null);
     const [form] = Form.useForm();
     const [totalItems, setTotalItems] = useState(0);
-    const [search, setSearch] = useState('');
     const [filterStatus, setFilterStatus] = useState('');
     const [filterTime, setFilterTime] = useState('');
 
 
     const limit: number = 6;
-    let totalPage: number = 0;
-
     useEffect(() => {
         fetch(`https://manage-task-six.vercel.app/api/v1/tasks?page=1&limit=99999`)
             .then(response => {
