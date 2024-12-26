@@ -5,6 +5,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import Search from 'antd/es/transfer/search';
 import Task from '../model/model';
 import TextArea from 'antd/es/input/TextArea';
+import Loading from '../components/Loading/Loanding.tsx';
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 const { Title, Paragraph } = Typography;
@@ -21,6 +22,7 @@ const Main = () => {
     let [editingTask, setEditingTask] = useState<Task | null>(null);
     let [createTask, setCreateTask] = useState<Task | null>(null);
     let [showDetail, setShowDetail] = useState<Task | null>(null);
+    const [loading, setLoading] = useState(false);
     const [form] = Form.useForm();
     const [totalItems, setTotalItems] = useState(0);
     const [filterStatus, setFilterStatus] = useState('');
@@ -48,14 +50,13 @@ const Main = () => {
                     const today = new Date();
                     filteredData = filteredData.filter((task: Task) => task.timeEnd?.getDate() === today.getDate() && task.timeEnd?.getMonth() === today.getMonth() && task.timeEnd?.getFullYear() === today.getFullYear());
                 }
-                else if (filterTime === 'nextWeek') {
+                if (filterTime === 'nextWeek') {
                     const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
                     filteredData = filteredData.filter((task: Task) => task.timeEnd?.getDate() === nextWeek.getDate() && task.timeEnd?.getMonth() === nextWeek.getMonth() && task.timeEnd?.getFullYear() === nextWeek.getFullYear());
-                } else{
-                    filteredData = data
                 }
 
                 console.log(filteredData);
+                setLoading(false);
                 setData(filteredData);
             })
             .catch(error => {
@@ -63,7 +64,7 @@ const Main = () => {
 
             });
 
-    }, [deleteId, createTask, filterStatus, filterTime]);
+    }, [deleteId, createTask, editingTask , filterStatus, filterTime]);
     useEffect(() => {
         fetch(`https://manage-task-six.vercel.app/api/v1/tasks/delete/${deleteId}`, {
             method: 'DELETE',
@@ -71,6 +72,7 @@ const Main = () => {
             .then(response => response.json())
             .then((data) => {
                 console.log(data);
+                setLoading(false);
                 setDeleteId('');
             })
 
@@ -135,8 +137,10 @@ const Main = () => {
             status: values.status,
             timeStart,
             timeEnd,
+            priority: values.priority,
             deleted: false,
         };
+        setLoading(true);
         if (editingTask) {
             fetch(`https://manage-task-six.vercel.app/api/v1/tasks/edit/${editingTask._id}`, {
                 method: 'PATCH',
@@ -149,6 +153,7 @@ const Main = () => {
                 .then((data) => {
                     console.log(data);
                     setIsModalVisible(false);
+                    setLoading(false);
                     setEditingTask(null);
                 })
             return;
@@ -165,6 +170,7 @@ const Main = () => {
                 .then(response => response.json())
                 .then((data) => {
                     console.log(data);
+                    setLoading(false);
                     setCreateTask(data);
                     setIsModalVisible(false);
                 })
@@ -190,16 +196,12 @@ const Main = () => {
     }
 
     const handleDelete = (id: string) => {
-        Modal.confirm({
-            title: 'Are you sure you want to delete this task?',
-            content: 'This action cannot be undone.',
-            onOk() {
-                setDeleteId(id);
-            },
-        });
+        setLoading(true);
+        setDeleteId(id);
     };
 
     return (
+        loading ? <Loading /> :
         <div className="site-layout-content " style={{ margin: 'auto', width: "80%" }}>
             <h1 style={{ fontSize: '2rem', textAlign: 'center', marginBottom: '20px' }}>Task Management</h1>
             <Card title="Task List" extra={<Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalVisible(true)}>Add Task</Button>}>
@@ -329,8 +331,6 @@ const Main = () => {
                 </Modal>
 
 
-            </Card>
-            <Card title="Task List">
                 <Space style={{ marginBottom: '16px' }}>
                     <Search
                         placeholder="Search tasks"
@@ -339,7 +339,10 @@ const Main = () => {
                     <Select
                         defaultValue=""
                         style={{ width: 120 }}
-                        onChange={(value) => setFilterStatus(value)}
+                        onChange={(value) => {
+                            setFilterStatus(value)
+                            setLoading(true);
+                        }}
 
                     >
                         <Option value="">All</Option>
@@ -353,15 +356,16 @@ const Main = () => {
                         onChange={(value) => {
                             if (value === 'today') {
                                 setFilterTime("today");
-                               
+
                             }
                             if (value === 'nextWeek') {
                                 setFilterTime("nextWeek");
-                               
+
                             }
                             if (value === '') {
                                 setFilterTime('');
                             }
+                            setLoading(true);
                         }}
 
                     >
